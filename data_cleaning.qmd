@@ -75,6 +75,18 @@ site_clean <- site |>
   mutate(Period_of_Record_From = as.character(Period_of_Record_From))
 ```
 
+Check for non-unique primary key in site table
+```{r}
+site_clean |> 
+  count(StationCode) |> 
+  filter(n > 1)
+```
+
+There are 2 values of D4-L with slightly different lat and long, likely the station location changed at some point during sampling. For simplification, I will just remove one row as I do not see any information in metadata.
+```{r}
+site_clean <- site_clean[-5, ]
+```
+
 Save processed data
 ```{r}
 write_csv(cpue_clean, file.path(here("data", "processed", "cpue.csv")))
