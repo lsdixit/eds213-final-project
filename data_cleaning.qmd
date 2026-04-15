@@ -1,0 +1,84 @@
+---
+title: "data_cleaning"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+Load libraries
+```{r}
+library(here)
+library(tidyverse)
+library(lubridate)
+```
+
+read in data
+```{r}
+org_keylist <- read_csv(here("data", "raw", "Benthic organism keylist 2024.csv"))
+cpue <- read_csv(here("data", "raw", "DWR Benthic CPUE data 1975-2024.csv"))
+site <- read_csv(here("data", "raw", "DWR benthic monitoring, active and historic site locations.csv"))
+```
+
+Remove duplicated columns from CPUE
+```{r}
+cpue_clean <- cpue |> 
+  select(-c(Class_level, Order_level, Family_level, Phylum, Genus, Species, Common_name, Location, Latitude, Longitude))
+```
+
+Adjust column types in CPUE data
+```{r}
+cpue_clean <- cpue_clean |> 
+  mutate(Date = as_date(Date),
+         OrganismCode = as.character(OrganismCode))
+```
+
+check for NAs
+```{r}
+sum(is.na(cpue_clean$Date))
+sum(is.na(cpue_clean$Station))
+sum(is.na(cpue_clean$Year))
+sum(is.na(cpue_clean$Month))
+sum(is.na(cpue_clean$OrganismCode))
+sum(is.na(cpue_clean$MeanCPUE))
+sum(is.na(cpue_clean$TotalGrabs))
+
+sum(is.na(org_keylist$OrganismCode))
+sum(is.na(org_keylist$Phylum))
+sum(is.na(org_keylist$Class_level))
+sum(is.na(org_keylist$Order_level)) # 8 NAs
+sum(is.na(org_keylist$Family_level))
+sum(is.na(org_keylist$Genus))
+sum(is.na(org_keylist$Species))
+sum(is.na(org_keylist$Common_name)) # 8 NAs also
+
+sum(is.na(site$StationCode))
+sum(is.na(site$Location))
+sum(is.na(site$Latitude))
+sum(is.na(site$Longitude))
+sum(is.na(site$Period_of_Record_From))
+sum(is.na(site$Period_of_Record_To))
+sum(is.na(site$Missing)) # 43 NAs
+sum(is.na(site$Status))
+
+```
+
+Remove NAs from organism keylist
+```{r}
+org_keylist_clean <- org_keylist |> 
+  filter(!is.na(Order_level)) |> 
+  mutate(OrganismCode = as.character(OrganismCode))
+```
+
+Adjust column types in site table
+```{r}
+site_clean <- site |> 
+  mutate(Period_of_Record_From = as.character(Period_of_Record_From))
+```
+
+Save processed data
+```{r}
+write_csv(cpue_clean, file.path(here("data", "processed", "cpue.csv")))
+write_csv(org_keylist_clean, file.path(here("data", "processed", "org_keylist.csv")))
+write_csv(site_clean, file.path(here("data", "processed", "site.csv")))
+```
+
