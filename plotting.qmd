@@ -1,0 +1,90 @@
+---
+title: "plotting"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+Load packages
+```{r}
+library(tidyverse)
+library(DBI)
+library(duckdb)
+library(dbplyr)
+library(ggplot2)
+library(forcats)
+library(viridis)
+library(ggstream)
+library(gridExtra)
+```
+
+Connect to the database
+```{r}
+conn <- DBI::dbConnect(duckdb::duckdb(),
+                       dbdir = "~/MEDS/Untitled Folder/eds213-final-project/eds213-final-project.duckdb")
+
+conn
+```
+
+Check for tables present in the database
+```{r}
+DBI::dbListTables(conn)
+```
+
+Pull data for plotting with a query
+```{r}
+top_abundant_sp <- dbGetQuery(conn,
+  "SELECT Phylum, Year, Location, Max_CPUE FROM (
+    SELECT Max(Mean_CPUE) AS Max_CPUE FROM (
+    SELECT Year, Location, Phylum,
+    AVG(Mean_cpue) AS Mean_CPUE
+    FROM cpue JOIN (SELECT * FROM site WHERE Status = 'Active') USING (Station_code)
+    JOIN org_keylist USING (Organism_code)
+    GROUP BY (Phylum, Year, Location)
+  )GROUP BY Year, Location
+  ) AS max
+  JOIN (
+  SELECT Year, Location, Phylum,
+    AVG(Mean_cpue) AS Mean_CPUE
+    FROM cpue JOIN (SELECT * FROM site WHERE Status = 'Active') USING (Station_code)
+    JOIN org_keylist USING (Organism_code)
+    GROUP BY (Phylum, Year, Location)
+  ) AS mean
+  ON max.Max_CPUE = mean.Mean_CPUE
+  ORDER BY Location, Year ASC"
+)
+```
+
+Plot!
+```{r}
+top_abundant_sp <- top_abundant_sp %>% 
+  mutate(Location_short = case_when(
+    Location == "Grizzly Bay at Dolphin near Suisun Slough (center)" ~ "Grizzly Bay",
+    Location == "Old River upstream of Clifton Court Forebay Intake (left)" ~ "Old River",
+    Location == "Old River upstream of Rock Slough (left)" ~ "Old River",
+    Location == "Sacramento River @ Sherman Island Upstream of Point Sacramento (left)" ~ "Sacramento River",
+    Location == "Sacramento River downstream of Rio Vista bridge (left)" ~ "Sacramento River",
+    Location == "San Joaquin River at Bradford Island (left)" ~ "San Joaquin River",
+    Location == "San Joaquin River at Buckley Cove (right)" ~ "San Joaquin River",
+    Location == "San Pablo Bay near Pinole Point -north central (center)" ~ "San Pablo Bay",
+    Location == "San Pablo Bay near Pinole Point (center)" ~ "San Pablo Bay",
+    Location == "Suisun Bay upstream of I-680 bridge (right)" ~ "Suisun Bay")) %>% 
+  group_by(Location_short, Year, Phylum) %>% 
+  summarise(Max_CPUE = sum(Max_CPUE)) %>% 
+  ungroup()
+
+ggplot(top_abundant_sp, aes(x = Year, y = Max_CPUE, fill = Phylum)) +
+  geom_stream(type = "ridge", bw = 0.9) +
+  facet_wrap(~Location_short, nrow = 2, scales = "free_y") +
+  scale_fill_viridis(option = "plasma", discrete = TRUE) +
+  theme_minimal() +
+  geom_vline(xintercept = c(2002, 2005)) +
+  labs(x = "Year",
+       y = "CPUE",
+       title = "Benthic Invertebrate Assemblages Shift Precede Pelagic Organism Decline (POD)")
+```
+
+```{r}
+DBI::dbDisconnect(conn, shutdown = TRUE)
+```
+
