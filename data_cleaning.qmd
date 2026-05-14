@@ -4,6 +4,7 @@ format: html
 editor_options: 
   chunk_output_type: console
 ---
+This Qmd contains all cleaning of the raw data before ingesting into a relational database.
 
 Load libraries
 ```{r}
@@ -19,7 +20,7 @@ cpue <- read_csv(here("data", "raw", "DWR Benthic CPUE data 1975-2024.csv"))
 site <- read_csv(here("data", "raw", "DWR benthic monitoring, active and historic site locations.csv"))
 ```
 
-Remove duplicated columns from CPUE
+Remove duplicated columns from CPUE, since these columns will be represented in other appropriate tables.
 ```{r}
 cpue_clean <- cpue |> 
   select(-c(Class_level, Order_level, Family_level, Phylum, Genus, Species, Common_name, Location, Latitude, Longitude))
@@ -32,8 +33,9 @@ cpue_clean <- cpue_clean |>
          OrganismCode = as.character(OrganismCode))
 ```
 
-check for NAs
+Check for NAs to define in schema if necessary.
 ```{r}
+# CPUE table
 sum(is.na(cpue_clean$Date))
 sum(is.na(cpue_clean$Station))
 sum(is.na(cpue_clean$Year))
@@ -42,6 +44,7 @@ sum(is.na(cpue_clean$OrganismCode))
 sum(is.na(cpue_clean$MeanCPUE))
 sum(is.na(cpue_clean$TotalGrabs))
 
+# Organism keylist table
 sum(is.na(org_keylist$OrganismCode))
 sum(is.na(org_keylist$Phylum))
 sum(is.na(org_keylist$Class_level))
@@ -51,6 +54,7 @@ sum(is.na(org_keylist$Genus))
 sum(is.na(org_keylist$Species))
 sum(is.na(org_keylist$Common_name)) # 8 NAs also
 
+# Site table
 sum(is.na(site$StationCode))
 sum(is.na(site$Location))
 sum(is.na(site$Latitude))
@@ -62,7 +66,7 @@ sum(is.na(site$Status))
 
 ```
 
-Remove NAs from organism keylist
+Remove NAs from organism keylist, as we do not want rows where organisms were defined to the species level but missing order information.
 ```{r}
 org_keylist_clean <- org_keylist |> 
   filter(!is.na(Order_level)) |> 
@@ -75,7 +79,7 @@ site_clean <- site |>
   mutate(Period_of_Record_From = as.character(Period_of_Record_From))
 ```
 
-Check for non-unique primary key in site table
+Check for non-unique primary key in site table, as there are issues ingesting.
 ```{r}
 site_clean |> 
   count(StationCode) |> 

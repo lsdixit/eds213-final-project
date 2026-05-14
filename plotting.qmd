@@ -31,7 +31,7 @@ Check for tables present in the database
 DBI::dbListTables(conn)
 ```
 
-Pull data for plotting with a query
+Pull data for plotting with an SQL query. This query calculates the Phylum with the highest CPUE per site and year.
 ```{r}
 top_abundant_sp <- dbGetQuery(conn,
   "SELECT Phylum, Year, Location, Max_CPUE FROM (
@@ -55,8 +55,10 @@ top_abundant_sp <- dbGetQuery(conn,
 )
 ```
 
-Plot!
+Visualize which phylum had the highest CPUE per site and over time.
 ```{r}
+# Combine sites to make for simpler plotting, from 10 sites to only 6. 
+# Sites are combined by the main river they are on.
 top_abundant_sp <- top_abundant_sp %>% 
   mutate(Location_short = case_when(
     Location == "Grizzly Bay at Dolphin near Suisun Slough (center)" ~ "Grizzly Bay",
@@ -69,22 +71,26 @@ top_abundant_sp <- top_abundant_sp %>%
     Location == "San Pablo Bay near Pinole Point -north central (center)" ~ "San Pablo Bay",
     Location == "San Pablo Bay near Pinole Point (center)" ~ "San Pablo Bay",
     Location == "Suisun Bay upstream of I-680 bridge (right)" ~ "Suisun Bay")) %>% 
+  # Calculate total CPUEs
   group_by(Location_short, Year, Phylum) %>% 
   summarise(Max_CPUE = sum(Max_CPUE)) %>% 
   ungroup()
 
+# Plot year and total CPUE by site and Phylums
 ggplot(top_abundant_sp, aes(x = Year, y = Max_CPUE, fill = Phylum)) +
+  # smooth the line to look nicer
   geom_stream(type = "ridge", bw = 0.9) +
   facet_wrap(~Location_short, nrow = 2, scales = "free_y") +
   scale_fill_viridis(option = "plasma", discrete = TRUE) +
   theme_minimal() +
+  # Add lines when POD occured
   geom_vline(xintercept = c(2002, 2005)) +
   labs(x = "Year",
        y = "CPUE",
        title = "Benthic Invertebrate Assemblages Shift Precede Pelagic Organism Decline (POD)")
 ```
 
+Close the database connection
 ```{r}
 DBI::dbDisconnect(conn, shutdown = TRUE)
 ```
-
