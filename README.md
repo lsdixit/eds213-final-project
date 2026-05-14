@@ -9,6 +9,7 @@ In this project, we developed a relational database based on publicly available 
 Data for this project come from the Interagency Ecological Program's [Environmental Monitoring Program](https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=1036&revision=6). These data were accessed on April 6, 2026. This dataset contains multiple tables with information on multiple metrics, and this project used CPUE, taxonomy, and location datasets. This program monitors the benthic invertebrate assembleges of the upper San Francisco Estuary at 10 sites monthly since 1975. 
 
 ## Repository Structure
+```
 ├── data
 │   ├── processed : Cleaned data before duckdb database ingestion.
 │   │   ├── cpue.csv
@@ -26,6 +27,6 @@ Data for this project come from the Interagency Ecological Program's [Environmen
 ├── plotting.qmd : R code for querying the database and data visualization.
 ├── README.md : File for the README.
 ├── requirements.txt : Depedencies required to reproduce this project.
-
+```
 ## Citations
 Wells, E. and Interagency Ecological Program. 2025. Interagency Ecological Program: Benthic invertebrate monitoring in the Sacramento-San Joaquin Bay-Delta, collected by the Environmental Monitoring Program, 1975-2024. ver 6. Environmental Data Initiative. https://doi.org/10.6073/pasta/49c541e4457528c3a9cfac33aa76bcd7 (Accessed 2026-05-14).
